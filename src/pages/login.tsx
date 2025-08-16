@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { checkAuth, loginWithGoogle, logout } from '../store/actions';
+import { loginWithGoogle, logout } from '../store/actions';
 import { useAppDispatch } from '../store/hooks';
 
 
@@ -13,11 +12,6 @@ export default function LoginPage() {
   const logoutButton = async () => {
     dispatch(logout());
   }
-
-  useEffect((() => {
-    dispatch(checkAuth());
-    console.log('true')
-  }), [dispatch]);
 
   return (
     <>
