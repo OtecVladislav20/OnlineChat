@@ -1,5 +1,5 @@
 export default function MainPage() {
-    return (
-        <h1>dfsfsdfsdf</h1>
-    );
+  return (
+    <h1>dfsfsdfsdf</h1>
+  );
 }
