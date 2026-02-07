@@ -3,6 +3,11 @@
 }
 
 {$APP_DOMAIN} {
+  tls {
+    issuer acme {
+      dir https://acme-v02.api.letsencrypt.org/directory
+    }
+  }
   encode gzip zstd
 
   @api {
@@ -13,6 +18,10 @@
 }
 
 {$LIVEKIT_DOMAIN} {
+  tls {
+    issuer acme {
+      dir https://acme-v02.api.letsencrypt.org/directory
+    }
+  }
   reverse_proxy livekit:7880
 }
-
