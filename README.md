@@ -53,3 +53,14 @@ docker compose -f docker-compose.vps.yml --env-file .env.vps up -d --build
 ```
 
 Caddy serves the frontend and proxies `/api` + `/socket.io` to the backend, and `LIVEKIT_DOMAIN` to LiveKit.
+
+## VPS quick test (HTTP, no certificates)
+
+If you want to quickly validate the deploy without configuring DNS/TLS, use `docker-compose.vps.http.yml`.
+Note: most browsers will block microphone access on plain HTTP for a public IP, so voice publish may not work until HTTPS.
+
+```bash
+cp .env.vps.http.example .env.vps.http
+# set APP_HOST to your server IP and set LIVEKIT_API_* to match livekit.yaml
+docker compose -f docker-compose.vps.http.yml --env-file .env.vps.http up -d --build
+```

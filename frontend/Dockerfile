@@ -6,6 +6,7 @@ RUN npm ci
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY package.json ./
 COPY index.html tsconfig.json vite.config.ts ./
 COPY public ./public
 COPY src ./src
@@ -17,4 +18,3 @@ FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
-

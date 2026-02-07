@@ -1,0 +1,16 @@
+http://{$APP_HOST} {
+  encode gzip zstd
+
+  @api {
+    path /api/* /socket.io/*
+  }
+  reverse_proxy @api backend:3001
+
+  @rtc {
+    path /rtc/*
+  }
+  reverse_proxy @rtc livekit:7880
+
+  reverse_proxy frontend:80
+}
+
