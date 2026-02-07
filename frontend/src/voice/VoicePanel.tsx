@@ -28,12 +28,14 @@ export function VoicePanel({ session, channelId }: Props) {
   const [room, setRoom] = useState<Room | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [micStatus, setMicStatus] = useState<"unknown" | "ok" | "blocked">("unknown");
   const [participants, setParticipants] = useState<ParticipantView[]>([]);
   const [volumes, setVolumes] = useState<Record<string, number>>({});
 
   const audioElsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   const inCall = room?.state === "connected";
+  const micAllowed = micStatus === "ok";
 
   const sortedParticipants = useMemo(() => {
     return participants.slice().sort((a, b) => {
@@ -41,6 +43,17 @@ export function VoicePanel({ session, channelId }: Props) {
       return a.identity.localeCompare(b.identity);
     });
   }, [participants]);
+
+  const insecureContextWarning = useMemo(() => {
+    try {
+      const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      if (window.isSecureContext) return null;
+      if (isLocalhost) return null;
+      return "Микрофон обычно не работает на HTTP для публичного IP. Для голоса нужен HTTPS (сертификат).";
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -153,8 +166,10 @@ export function VoicePanel({ session, channelId }: Props) {
       let localAudioTrack: Awaited<ReturnType<typeof createLocalAudioTrack>> | null = null;
       try {
         localAudioTrack = await createLocalAudioTrack();
+        setMicStatus("ok");
       } catch {
         localAudioTrack = null;
+        setMicStatus("blocked");
       }
 
       const { url, token } = await createVoiceToken(session, channelId);
@@ -214,12 +229,13 @@ export function VoicePanel({ session, channelId }: Props) {
       </div>
 
       <div className="voiceList">
+        {insecureContextWarning ? <div className="voiceWarn">{insecureContextWarning}</div> : null}
         {error ? <div className="voiceError">{error}</div> : null}
         {sortedParticipants.map((p) => (
           <div key={p.identity} className="voiceRow">
             <div className="voiceName">
               {p.isLocal ? "You" : p.label}
-              {p.isLocal ? <span className="voiceHint"> (mic)</span> : null}
+              {p.isLocal ? <span className="voiceHint">{micAllowed ? " (mic)" : " (no mic)"}</span> : null}
             </div>
             {!p.isLocal ? (
               <input

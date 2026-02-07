@@ -267,6 +267,15 @@ input:disabled {
   font-size: 13px;
 }
 
+.voiceWarn {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 193, 7, 0.25);
+  background: rgba(255, 193, 7, 0.10);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+}
+
 .msg {
   padding: 8px 10px;
   border: 1px solid rgba(255, 255, 255, 0.05);
