@@ -1,0 +1,76 @@
+services:
+  caddy:
+    image: caddy:2
+    container_name: onlinechat-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+      - LIVEKIT_DOMAIN=${LIVEKIT_DOMAIN}
+      - CADDY_EMAIL=${CADDY_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+      - livekit
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ""
+    container_name: onlinechat-frontend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: onlinechat-backend
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - MONGO_URL=mongodb://mongo:27017/onlinechat
+      - CORS_ORIGIN=https://${APP_DOMAIN}
+      - LIVEKIT_URL=wss://${LIVEKIT_DOMAIN}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    container_name: onlinechat-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: onlinechat-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  livekit:
+    image: livekit/livekit-server:v1.9.11
+    container_name: onlinechat-livekit
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7881:7881"
+      - "50000-50100:50000-50100/udp"
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+
+volumes:
+  mongo_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+

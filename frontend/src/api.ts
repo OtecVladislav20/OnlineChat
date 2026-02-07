@@ -2,15 +2,13 @@ import type { Channel, Message, Workspace } from "./types";
 
 type DevSession = { userId: string; username: string };
 
-const apiUrl =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  "http://localhost:3001";
+const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
 
 async function api<T>(
   path: string,
   init?: RequestInit & { session?: DevSession },
 ) {
-  const url = `${apiUrl}${path}`;
+  const url = apiUrl ? `${apiUrl}${path}` : path;
   const headers = new Headers(init?.headers ?? {});
   headers.set("content-type", "application/json");
   if (init?.session) headers.set("x-user-id", init.session.userId);
