@@ -85,34 +85,40 @@ export function VoicePanel({ session, channelId }: Props) {
       ]);
     };
 
+    const syncRemoteAudio = () => {
+      // If a user joins after others already published tracks, we might miss TrackSubscribed
+      // events that fire during connect (before this effect wires listeners).
+      // Ensure we attach any currently subscribed remote audio tracks.
+      for (const participant of room.remoteParticipants.values()) {
+        for (const pub of participant.trackPublications.values()) {
+          if (pub.kind !== Track.Kind.Audio) continue;
+          const track = pub.track;
+          if (!track) continue;
+          if (track.kind !== Track.Kind.Audio) continue;
+          attachRemoteAudioTrack(participant.identity, track as RemoteAudioTrack);
+        }
+      }
+    };
+
     const onConnected = () => refreshParticipants();
     const onDisconnected = () => setParticipants([]);
-    const onParticipantConnected = () => refreshParticipants();
+    const onParticipantConnected = () => {
+      refreshParticipants();
+      syncRemoteAudio();
+    };
     const onParticipantDisconnected = (p: RemoteParticipant) => {
-      audioElsRef.current.get(p.identity)?.remove();
-      audioElsRef.current.delete(p.identity);
+      removeAudioEl(p.identity);
       refreshParticipants();
     };
 
     const onTrackSubscribed = (track: RemoteTrack, _pub: RemoteTrackPublication, participant: RemoteParticipant) => {
       if (track.kind !== Track.Kind.Audio) return;
       const audioTrack = track as RemoteAudioTrack;
-
-      const identity = participant.identity;
-      const audioEl = audioTrack.attach() as HTMLAudioElement;
-      audioEl.autoplay = true;
-      audioEl.volume = volumes[identity] ?? 1;
-      audioEl.style.display = "none";
-      document.body.appendChild(audioEl);
-      audioElsRef.current.set(identity, audioEl);
+      attachRemoteAudioTrack(participant.identity, audioTrack);
     };
 
     const onTrackUnsubscribed = (_track: RemoteTrack, _pub: RemoteTrackPublication, participant: RemoteParticipant) => {
-      const el = audioElsRef.current.get(participant.identity);
-      if (el) {
-        el.remove();
-        audioElsRef.current.delete(participant.identity);
-      }
+      removeAudioEl(participant.identity);
     };
 
     room.on(RoomEvent.Connected, onConnected);
@@ -123,6 +129,7 @@ export function VoicePanel({ session, channelId }: Props) {
     room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
 
     refreshParticipants();
+    syncRemoteAudio();
 
     return () => {
       room.off(RoomEvent.Connected, onConnected);
@@ -149,6 +156,32 @@ export function VoicePanel({ session, channelId }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelId]);
+
+  function removeAudioEl(identity: string) {
+    const el = audioElsRef.current.get(identity);
+    if (!el) return;
+    try {
+      el.pause();
+      el.srcObject = null;
+      el.remove();
+    } catch {
+      // ignore
+    } finally {
+      audioElsRef.current.delete(identity);
+    }
+  }
+
+  function attachRemoteAudioTrack(identity: string, audioTrack: RemoteAudioTrack) {
+    // Replace any existing element for this participant.
+    removeAudioEl(identity);
+
+    const audioEl = audioTrack.attach() as HTMLAudioElement;
+    audioEl.autoplay = true;
+    audioEl.volume = volumes[identity] ?? 1;
+    audioEl.style.display = "none";
+    document.body.appendChild(audioEl);
+    audioElsRef.current.set(identity, audioEl);
+  }
 
   function normalizeLivekitUrl(rawUrl: string) {
     // livekit-client prefers ws(s) endpoints; accept http(s) from backend for convenience.
@@ -204,6 +237,7 @@ export function VoicePanel({ session, channelId }: Props) {
     } catch {
       // ignore
     } finally {
+      audioElsRef.current.forEach((_, identity) => removeAudioEl(identity));
       setRoom(null);
       setParticipants([]);
     }
